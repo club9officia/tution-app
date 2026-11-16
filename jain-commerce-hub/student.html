@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Portal — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+          <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Logo" />
+          <div class="sidebar-brand-text">
+            <strong>Jain Commerce Hub</strong>
+            <span>Student Portal</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-panel="home">Home</button>
+          <button type="button" class="nav-item" data-panel="attendance">Attendance</button>
+          <button type="button" class="nav-item" data-panel="tests">Test Marks</button>
+          <button type="button" class="nav-item" data-panel="weekly">Weekly Content</button>
+          <button type="button" class="nav-item" data-panel="datesheets">Date Sheets</button>
+          <button type="button" class="nav-item" data-panel="ptms">PTMs</button>
+          <button type="button" class="nav-item" data-panel="notices">Notices</button>
+          <button type="button" class="nav-item" data-panel="leaves">Apply for Leave</button>
+          <button type="button" class="nav-item" data-panel="notifications">Notifications</button>
+          <button type="button" class="nav-item" data-panel="profile">Profile &amp; Password</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button type="button" id="logout-btn" class="btn btn-gold btn-block btn-sm">Logout</button>
+        </div>
+      </aside>
+
+      <div class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Open menu">☰</button>
+            <h1 id="topbar-title" class="topbar-title">Home</h1>
+          </div>
+          <div class="topbar-user">
+            <span id="stu-header-id" class="badge badge-primary mono">STD</span>
+            <button type="button" id="topbar-logout-btn" class="btn btn-outline btn-sm btn-inline desktop-only">Logout</button>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <!-- 1. HOME PANEL -->
+          <section id="panel-home" class="panel active">
+            <div class="student-hero-card">
+              <div>
+                <span class="badge badge-gold" id="stu-session-badge">Session</span>
+                <h2 id="stu-name-heading" style="margin: 10px 0 4px; font-size: 1.5rem; color: #fff;">Welcome</h2>
+                <p id="stu-batch-subtitle" style="margin: 0; color: #DBEAFE;">Loading batch details...</p>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 280px;">
+                <button type="button" id="ask-doubt-wa-btn" class="btn btn-gold btn-lg btn-block">
+                  💬 Ask a Doubt on WhatsApp
+                </button>
+                <span id="doubt-teacher-hint" style="font-size: 14px; color: #E2E8F0; text-align: center;">
+                  Connects directly with your batch teacher
+                </span>
+              </div>
+            </div>
+
+            <div class="student-grid">
+              <!-- Today's Timing -->
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Today's Class Timing</h2>
+                  <span id="stu-timing-badge" class="badge badge-primary">Default</span>
+                </div>
+                <div id="stu-today-timing" style="font-size: 1.35rem; font-weight: 800; color: var(--primary); margin-bottom: 6px;">
+                  --
+                </div>
+                <p id="stu-timing-note" class="text-muted" style="margin: 0;"></p>
+              </div>
+
+              <!-- Attendance Summary -->
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">This Month's Attendance</h2>
+                  <span id="stu-home-att-pct" class="badge badge-success">0%</span>
+                </div>
+                <p id="stu-home-att-summary" class="text-muted" style="margin-bottom: 12px;">Loading attendance...</p>
+              </div>
+            </div>
+
+            <!-- Latest Notice -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Latest Notice</h2>
+                <button type="button" id="stu-view-notices-btn" class="btn btn-outline btn-sm btn-inline">All Notices</button>
+              </div>
+              <div id="stu-latest-notice">
+                <p class="text-muted" style="margin:0;">Loading notices...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. ATTENDANCE PANEL -->
+          <section id="panel-attendance" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">This Month's Attendance</h2>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: auto;">
+                  <span id="stu-att-pct" class="badge badge-success">0%</span>
+                </div>
+              </div>
+              <p id="stu-att-summary" class="text-muted" style="margin-bottom: 14px;"></p>
+              <div id="stu-att-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading attendance records...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. ROUTINE TEST MARKS (CARD LIST — ZERO TABLES) -->
+          <section id="panel-tests" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Routine Test Marks</h2>
+              </div>
+              <div id="stu-test-marks-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading test marks...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. WEEKLY CONTENT -->
+          <section id="panel-weekly" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Weekly Content</h2>
+                <span class="badge badge-muted">Last 7 Days</span>
+              </div>
+              <div id="stu-weekly-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading weekly content...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. SCHOOL DATE SHEETS (CARD LIST — ZERO TABLES) -->
+          <section id="panel-datesheets" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">School Date Sheets</h2>
+              </div>
+              <div id="stu-datesheets-list">
+                <p class="text-muted" style="margin:0;">Loading date sheets...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7. UPCOMING PTMs (CARD LIST — ZERO TABLES) -->
+          <section id="panel-ptms" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Upcoming PTMs</h2>
+              </div>
+              <div id="stu-ptms-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading PTMs...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8. NOTICES -->
+          <section id="panel-notices" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Notices</h2>
+              </div>
+              <div id="stu-notices-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading notices...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 9. APPLY FOR LEAVE -->
+          <section id="panel-leaves" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Apply for Leave</h2>
+              </div>
+              <form id="stu-leave-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="leave-from">From Date</label>
+                    <input id="leave-from" type="date" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="leave-to">To Date</label>
+                    <input id="leave-to" type="date" required />
+                  </div>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                  <label for="leave-reason">Reason</label>
+                  <textarea id="leave-reason" placeholder="Reason for leave..." required></textarea>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Submit Leave Request</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">My Leave Applications</h2>
+              </div>
+              <div id="stu-leaves-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">No leave applications yet.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 10. NOTIFICATIONS -->
+          <section id="panel-notifications" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Notifications</h2>
+                <div style="display: flex; align-items: center; gap: 8px; width: auto; flex-wrap: wrap;">
+                  <span id="stu-unread-badge" class="badge badge-gold">0 Unread</span>
+                  <button type="button" id="mark-all-read-btn" class="btn btn-outline btn-sm btn-inline">Mark All Read</button>
+                </div>
+              </div>
+              <p class="text-muted" style="margin-bottom: 12px;">
+                Tap any notification to mark it as read.
+              </p>
+              <div id="stu-notif-list"></div>
+            </div>
+          </section>
+
+          <!-- 11. PROFILE & PASSWORD -->
+          <section id="panel-profile" class="panel">
+            <div class="card" style="max-width: 560px;">
+              <div class="card-header">
+                <h2 class="card-title">My Profile</h2>
+              </div>
+              <div id="stu-profile-details" class="popup-mini-list">
+                <p class="text-muted" style="margin:0;">Loading profile...</p>
+              </div>
+            </div>
+
+            <div class="card" style="max-width: 560px;">
+              <div class="card-header">
+                <h2 class="card-title">Change Own Password</h2>
+              </div>
+              <form id="student-pwd-form">
+                <div class="form-group">
+                  <label for="stu-curr-pwd">Current Password</label>
+                  <input id="stu-curr-pwd" type="password" required />
+                </div>
+                <div class="form-group">
+                  <label for="stu-new-pwd">New Password</label>
+                  <input id="stu-new-pwd" type="text" minlength="4" required />
+                </div>
+                <div class="form-group">
+                  <label for="stu-confirm-pwd">Confirm New Password</label>
+                  <input id="stu-confirm-pwd" type="text" minlength="4" required />
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Update Password</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- 12. MORE MENU (Mobile Quick Access) -->
+          <section id="panel-more" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">More Options</h2>
+              </div>
+              <div class="more-menu-grid">
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="weekly"><span>📖 Weekly Content</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="datesheets"><span>📅 Date Sheets</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="ptms"><span>🤝 PTMs</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="notices"><span>📢 Notices</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="leaves"><span>📝 Apply for Leave</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="notifications"><span>🔔 Notifications</span><span>›</span></button>
+                <button type="button" class="more-menu-btn stu-more-nav" data-panel="profile"><span>👤 Profile / Password</span><span>›</span></button>
+                <button type="button" class="more-menu-btn danger" id="stu-more-logout-btn"><span>🚪 Logout</span><span>›</span></button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Mobile Bottom Tab Bar -->
+        <nav class="mobile-bottom-nav" aria-label="Student Tabs">
+          <button type="button" class="mobile-tab-btn active" data-panel="home">
+            <span class="tab-ico">🏠</span><span>Home</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="attendance">
+            <span class="tab-ico">✅</span><span>Attend</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="tests">
+            <span class="tab-ico">📊</span><span>Tests</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="more">
+            <span class="tab-ico">⋯</span><span>More</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <script type="module" src="js/student.js"></script>
+  </body>
+</html>

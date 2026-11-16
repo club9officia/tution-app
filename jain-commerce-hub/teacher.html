@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+          <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Logo" />
+          <div class="sidebar-brand-text">
+            <strong>Jain Commerce Hub</strong>
+            <span>Teacher Portal</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-panel="batches">My Batches</button>
+          <button type="button" class="nav-item" data-panel="tests">Routine Tests</button>
+          <button type="button" class="nav-item" data-panel="results">Test Results</button>
+          <button type="button" class="nav-item" data-panel="weekly">Weekly Content</button>
+          <button type="button" class="nav-item" data-panel="datesheets">Date Sheets</button>
+          <button type="button" class="nav-item" data-panel="ptms">PTMs</button>
+          <button type="button" class="nav-item" data-panel="notices">Notices</button>
+          <button type="button" class="nav-item" data-panel="leaves">Student Leaves</button>
+          <button type="button" class="nav-item" data-panel="attendance">Attendance View</button>
+          <button type="button" class="nav-item" data-panel="settings">Settings / Password</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button type="button" id="logout-btn" class="btn btn-gold btn-block btn-sm">Logout</button>
+        </div>
+      </aside>
+
+      <div class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Open menu">☰</button>
+            <h1 id="topbar-title" class="topbar-title">My Batches</h1>
+          </div>
+          <div class="topbar-user">
+            <span id="teacher-user-badge" class="badge badge-primary">Teacher</span>
+            <button type="button" id="topbar-logout-btn" class="btn btn-outline btn-sm btn-inline desktop-only">Logout</button>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <!-- 3-DAY EXAM REMINDER BANNERS -->
+          <div id="teacher-exam-reminders" class="reminder-stack hidden"></div>
+
+          <!-- 1. MY BATCHES (READ-ONLY + WHATSAPP HOMEWORK) -->
+          <section id="panel-batches" class="panel active">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Batch Schedule, Homework &amp; Student Roster</h2>
+                <span class="badge badge-gold" id="teacher-batch-count">0 Batches</span>
+              </div>
+              <div id="teacher-batches-list"></div>
+            </div>
+          </section>
+
+          <!-- 2. ROUTINE TESTS -->
+          <section id="panel-tests" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Create Routine Test</h2>
+              </div>
+              <form id="test-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="test-batch">Batch</label>
+                    <select id="test-batch" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="test-name">Test Name</label>
+                    <input id="test-name" type="text" placeholder="e.g. Unit Test 1" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="test-topic">Topic</label>
+                    <input id="test-topic" type="text" placeholder="e.g. Partnership Fundamentals" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="test-max">Max Marks</label>
+                    <input id="test-max" type="number" min="1" step="0.5" placeholder="e.g. 50" required />
+                  </div>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Create Test</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Tests by Batch</h2>
+                <select id="test-filter-batch" style="max-width: 260px;"></select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Test Name</th>
+                      <th>Topic</th>
+                      <th>Batch</th>
+                      <th>Max Marks</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tests-table-body">
+                    <tr>
+                      <td colspan="5" class="empty-cell text-muted">Loading tests...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. TEST RESULTS (CARD LIST + STICKY SAVE BAR) -->
+          <section id="panel-results" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Enter Routine Test Marks</h2>
+                <select id="res-test-select" style="max-width: 320px;"></select>
+              </div>
+              <div id="res-test-meta" class="alert alert-info hidden"></div>
+              <form id="results-form">
+                <div id="results-card-list" class="results-card-list">
+                  <p class="text-muted" style="margin:0;">Select a test to enter marks.</p>
+                </div>
+                <div id="results-save-wrap" class="sticky-save-bar hidden">
+                  <button type="submit" class="btn btn-primary btn-block">Save Results</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- 4. WEEKLY CONTENT (7-DAY AUTO-CLEANUP) -->
+          <section id="panel-weekly" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Post Weekly Class Content</h2>
+                <span class="badge badge-muted">Auto-deletes after 7 days</span>
+              </div>
+              <form id="weekly-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="wk-batch">Batch</label>
+                    <select id="wk-batch" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="wk-start">Week Start Date</label>
+                    <input id="wk-start" type="date" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="wk-content">Weekly Topics / Notes</label>
+                  <textarea id="wk-content" placeholder="Topics covered this week, revision plan, practice questions..." required></textarea>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Publish Weekly Content</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Active Weekly Content (Last 7 Days)</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Week Start</th>
+                      <th>Batch</th>
+                      <th>Content</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="weekly-table-body">
+                    <tr>
+                      <td colspan="4" class="empty-cell text-muted">Loading weekly content...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+
+
+          <!-- 6. SCHOOL DATE SHEETS -->
+          <section id="panel-datesheets" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">School Exam Date Sheets</h2>
+                <button type="button" id="open-datesheet-modal-btn" class="btn btn-primary btn-sm btn-inline">
+                  + Add Date Sheet
+                </button>
+              </div>
+              <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 14px;">
+                Add school-wise exam schedules per batch. Automatic reminders trigger 3 days before every exam date.
+              </p>
+              <div id="datesheets-list"></div>
+            </div>
+          </section>
+
+          <!-- 7. PTMs -->
+          <section id="panel-ptms" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Schedule Parent-Teacher Meeting (PTM)</h2>
+              </div>
+              <form id="ptm-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="ptm-batch">Batch</label>
+                    <select id="ptm-batch" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ptm-date">Date</label>
+                    <input id="ptm-date" type="date" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="ptm-time">Time</label>
+                    <input id="ptm-time" type="text" placeholder="e.g. 10:00 AM - 12:30 PM" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="ptm-agenda">Agenda</label>
+                  <textarea id="ptm-agenda" placeholder="Review test performance, attendance, board prep..." required></textarea>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Schedule PTM</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Scheduled PTMs</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date &amp; Time</th>
+                      <th>Batch</th>
+                      <th>Agenda</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ptms-table-body">
+                    <tr>
+                      <td colspan="4" class="empty-cell text-muted">Loading PTMs...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8. NOTICES -->
+          <section id="panel-notices" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Post Notice</h2>
+              </div>
+              <form id="notice-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="notice-title">Title</label>
+                    <input id="notice-title" type="text" placeholder="e.g. Sunday Extra Doubt Class" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="notice-batch">Target Batch</label>
+                    <select id="notice-batch" required></select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="notice-msg">Message</label>
+                  <textarea id="notice-msg" placeholder="Write the full notice for students..." required></textarea>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Publish Notice</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Published Notices</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Target</th>
+                      <th>Message</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="notices-table-body">
+                    <tr>
+                      <td colspan="4" class="empty-cell text-muted">Loading notices...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 9. LEAVES (READ-ONLY CLICKABLE BOXES) -->
+          <section id="panel-leaves" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Student Leave Applications (Read-Only)</h2>
+                <span class="badge badge-muted">Approved/Rejected by Receptionist</span>
+              </div>
+              <div id="teacher-leaves-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading leaves...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 10. ATTENDANCE VIEW (READ-ONLY CLICKABLE BOXES) -->
+          <section id="panel-attendance" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Batch Attendance View (Read-Only)</h2>
+              </div>
+              <div class="form-grid" style="margin-bottom: 16px;">
+                <div class="form-group">
+                  <label for="t-att-batch">Batch</label>
+                  <select id="t-att-batch"></select>
+                </div>
+                <div class="form-group">
+                  <label for="t-att-date">Date</label>
+                  <input id="t-att-date" type="date" />
+                </div>
+              </div>
+              <div id="teacher-att-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Select a batch and date.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 11. CHANGE OWN PASSWORD -->
+          <section id="panel-settings" class="panel">
+            <div class="card" style="max-width: 520px;">
+              <div class="card-header">
+                <h2 class="card-title">Change Own Password</h2>
+              </div>
+              <form id="teacher-pwd-form">
+                <div class="form-group">
+                  <label for="tch-curr-pwd">Current Password</label>
+                  <input id="tch-curr-pwd" type="password" required />
+                </div>
+                <div class="form-group">
+                  <label for="tch-new-pwd">New Password</label>
+                  <input id="tch-new-pwd" type="text" minlength="4" required />
+                </div>
+                <div class="form-group">
+                  <label for="tch-confirm-pwd">Confirm New Password</label>
+                  <input id="tch-confirm-pwd" type="text" minlength="4" required />
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Update Password</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- 12. MORE MENU (Mobile Quick Access) -->
+          <section id="panel-more" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">More Options</h2>
+              </div>
+              <div class="more-menu-grid">
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="results"><span>📊 Test Results</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="weekly"><span>📖 Weekly Content</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="datesheets"><span>📅 Date Sheets</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="ptms"><span>🤝 PTMs</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="notices"><span>📢 Notices</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="leaves"><span>📝 Student Leaves</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="attendance"><span>✅ Attendance View</span><span>›</span></button>
+                <button type="button" class="more-menu-btn tch-more-nav" data-panel="settings"><span>🔑 Settings / Password</span><span>›</span></button>
+                <button type="button" class="more-menu-btn danger" id="tch-more-logout-btn"><span>🚪 Logout</span><span>›</span></button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Mobile Bottom Tab Bar -->
+        <nav class="mobile-bottom-nav" aria-label="Teacher Tabs">
+          <button type="button" class="mobile-tab-btn active" data-panel="batches">
+            <span class="tab-ico">📚</span><span>Batches</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="tests">
+            <span class="tab-ico">📝</span><span>Tests</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="more">
+            <span class="tab-ico">⋯</span><span>More</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- WHATSAPP GROUP LINK MODAL -->
+    <div id="wa-group-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="wa-modal-title">Batch WhatsApp Group Link</h3>
+          <button type="button" id="close-wa-modal" class="btn btn-outline btn-sm btn-inline">Close</button>
+        </div>
+        <form id="wa-group-form">
+          <input type="hidden" id="wa-batch-id" />
+          <div class="form-group">
+            <label for="wa-group-url">WhatsApp Group Invite URL</label>
+            <input
+              id="wa-group-url"
+              type="url"
+              placeholder="https://chat.whatsapp.com/..."
+              required
+            />
+          </div>
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 14px;">
+            Once saved, clicking <strong>📤 Homework</strong> on this batch opens the WhatsApp group directly.
+          </p>
+          <div class="form-sticky-actions">
+            <button type="submit" class="btn btn-primary btn-block">Save Group Link</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADD DATE SHEET MODAL -->
+    <div id="datesheet-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Add School Date Sheet</h3>
+          <button type="button" id="close-datesheet-modal" class="btn btn-outline btn-sm btn-inline">Close</button>
+        </div>
+        <form id="datesheet-form">
+          <div class="form-group">
+            <label for="ds-batch">Batch</label>
+            <select id="ds-batch" required></select>
+          </div>
+          <div class="form-group">
+            <label for="ds-school">School Name</label>
+            <input id="ds-school" type="text" placeholder="e.g. DPS Ranipur" required />
+          </div>
+          <div class="form-group">
+            <label>Subjects &amp; Exam Dates</label>
+            <div id="ds-rows-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <button type="button" id="ds-add-row-btn" class="btn btn-outline btn-sm" style="margin-top:8px;">
+              + Add another subject
+            </button>
+          </div>
+          <div class="form-sticky-actions">
+            <button type="submit" class="btn btn-primary btn-block">Save Date Sheet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- STUDENT MARKS HISTORY MODAL -->
+    <div id="student-marks-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="marks-modal-title">Student Test Marks</h3>
+          <button type="button" id="close-marks-modal" class="btn btn-outline btn-sm btn-inline">Close</button>
+        </div>
+        <div id="marks-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- TEACHER STUDENT DETAIL & 4-PHONE CARD MODAL (v5) -->
+    <div id="teacher-student-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal modal-wide">
+        <div class="modal-head">
+          <h3 id="t-stu-modal-title">Student Details</h3>
+          <button type="button" id="close-t-stu-modal" class="btn btn-outline btn-sm btn-inline">Close</button>
+        </div>
+        <div id="t-stu-modal-body"></div>
+      </div>
+    </div>
+
+    <script type="module" src="js/teacher.js"></script>
+  </body>
+</html>

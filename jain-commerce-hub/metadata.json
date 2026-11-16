@@ -1,0 +1,8 @@
+{
+  "name": "Jain Commerce Hub",
+  "description": "Tuition management web application for Jain Commerce Hub — courses, WhatsApp enquiry, student fee tracking, attendance, and notices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

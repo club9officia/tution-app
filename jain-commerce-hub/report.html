@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monthly Revenue Report — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="report-page">
+      <div class="card no-print" style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="admin.html" class="btn btn-outline btn-sm btn-inline">← Back to Admin</a>
+          <input id="report-month-picker" type="month" style="width: auto; min-width: 160px;" />
+        </div>
+        <button type="button" id="print-pdf-btn" class="btn btn-primary">
+          Print / Save as PDF
+        </button>
+      </div>
+
+      <article class="report-sheet">
+        <header class="report-header">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Jain Commerce Hub Logo" style="width: 56px; height: 56px; object-fit: contain;" />
+            <div>
+              <h1 style="margin: 0; font-size: 1.35rem; color: var(--primary);">Jain Commerce Hub</h1>
+              <p class="text-muted" style="margin: 2px 0 0; font-size: 0.9rem;">
+                WhatsApp: +91 97191 90358
+              </p>
+            </div>
+          </div>
+          <div>
+            <span class="badge badge-gold">Monthly Financial Report</span>
+            <h2 id="report-month-heading" style="margin: 6px 0 2px; color: var(--primary); font-size: 1.15rem;">--</h2>
+            <div id="report-generated-at" class="text-muted" style="font-size: 0.8rem;"></div>
+          </div>
+        </header>
+
+        <div id="report-loading" class="alert alert-info">Loading financial records from Firebase...</div>
+
+        <div id="report-body" class="hidden">
+          <div class="stats-grid" style="margin-bottom: 22px;">
+            <div class="stat-card success">
+              <div class="stat-label">Total Fees Collected</div>
+              <div class="stat-value" id="rep-total-fees">₹0</div>
+              <div class="stat-sub" id="rep-fee-count">0 receipts</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-label">Total Expenses</div>
+              <div class="stat-value" id="rep-total-expenses">₹0</div>
+              <div class="stat-sub" id="rep-exp-count">0 entries</div>
+            </div>
+            <div class="stat-card gold">
+              <div class="stat-label">Net Profit / Surplus</div>
+              <div class="stat-value" id="rep-net-profit">₹0</div>
+              <div class="stat-sub" id="rep-margin-label">Monthly P&amp;L</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Payment Mode Split</div>
+              <div class="stat-value" style="font-size: 1.05rem;" id="rep-mode-split">Cash: ₹0 | UPI: ₹0</div>
+              <div class="stat-sub" id="rep-mode-counts">0 Cash • 0 UPI</div>
+            </div>
+          </div>
+
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Session &amp; Batch Revenue Breakdown</h3>
+          <div class="table-wrap" style="margin-bottom: 22px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Batch Name</th>
+                  <th>Paid Receipts</th>
+                  <th>Collected (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="rep-batch-table"></tbody>
+            </table>
+          </div>
+
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Expense Category Breakdown</h3>
+          <div class="table-wrap" style="margin-bottom: 22px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Entries</th>
+                  <th>Total Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="rep-expense-cat-table"></tbody>
+            </table>
+          </div>
+
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Fee Receipts Register</h3>
+          <div class="table-wrap" style="margin-bottom: 22px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Student ID</th>
+                  <th>Student Name</th>
+                  <th>Batch</th>
+                  <th>Mode</th>
+                  <th>Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="rep-fees-register"></tbody>
+            </table>
+          </div>
+
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Expenses Register</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Added By</th>
+                  <th>Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="rep-expenses-register"></tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <script type="module">
+      import {
+        guard,
+        dbGet,
+        monthKey,
+        formatMonthLabel,
+        formatINR,
+        escapeHtml,
+        objectToList
+      } from "./js/app.js";
+
+      const session = guard("admin");
+      if (!session) throw new Error("Unauthorized");
+
+      const params = new URLSearchParams(window.location.search);
+      let targetMonth = params.get("month");
+      if (!targetMonth || !/^\d{4}-\d{2}$/.test(targetMonth)) {
+        targetMonth = monthKey();
+      }
+
+      const monthPicker = document.getElementById("report-month-picker");
+      monthPicker.value = targetMonth;
+      monthPicker.addEventListener("change", () => {
+        if (monthPicker.value) {
+          window.location.href = `report.html?month=${encodeURIComponent(monthPicker.value)}`;
+        }
+      });
+
+      document.getElementById("print-pdf-btn").addEventListener("click", () => {
+        window.print();
+      });
+
+      document.getElementById("report-month-heading").textContent = formatMonthLabel(targetMonth);
+      document.getElementById("report-generated-at").textContent = "Generated on: " + new Date().toLocaleString("en-IN");
+
+      async function loadReport() {
+        try {
+          const [feesRaw, expensesRaw, batchesRaw, sessionsRaw] = await Promise.all([
+            dbGet("fees"),
+            dbGet("expenses"),
+            dbGet("batches"),
+            dbGet("sessions")
+          ]);
+
+          const sessionsMap = sessionsRaw || {};
+          const batchesMap = batchesRaw || {};
+
+          const fees = objectToList(feesRaw).filter((f) => f.month === targetMonth);
+          const expenses = objectToList(expensesRaw).filter((e) => (e.date || "").slice(0, 7) === targetMonth);
+
+          const totalFees = fees.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+          const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+          const netProfit = totalFees - totalExpenses;
+
+          let cashAmt = 0;
+          let upiAmt = 0;
+          let cashCount = 0;
+          let upiCount = 0;
+          fees.forEach((f) => {
+            const amt = Number(f.amount) || 0;
+            if ((f.mode || "").toLowerCase() === "upi") {
+              upiAmt += amt;
+              upiCount += 1;
+            } else {
+              cashAmt += amt;
+              cashCount += 1;
+            }
+          });
+
+          document.getElementById("rep-total-fees").textContent = formatINR(totalFees);
+          document.getElementById("rep-fee-count").textContent = `${fees.length} receipt(s)`;
+          document.getElementById("rep-total-expenses").textContent = formatINR(totalExpenses);
+          document.getElementById("rep-exp-count").textContent = `${expenses.length} entry(s)`;
+          const netEl = document.getElementById("rep-net-profit");
+          netEl.textContent = formatINR(netProfit);
+          netEl.className = "stat-value " + (netProfit >= 0 ? "text-success" : "text-danger");
+          document.getElementById("rep-margin-label").textContent = netProfit >= 0 ? "Net Surplus" : "Net Deficit";
+          document.getElementById("rep-mode-split").textContent = `Cash: ${formatINR(cashAmt)} | UPI: ${formatINR(upiAmt)}`;
+          document.getElementById("rep-mode-counts").textContent = `${cashCount} Cash • ${upiCount} UPI`;
+
+          // Session & Batch Breakdown
+          const batchAgg = {};
+          fees.forEach((f) => {
+            const bId = f.batchId || "unassigned";
+            const batch = batchesMap[bId] || {};
+            const sId = f.sessionId || batch.sessionId || "";
+            const sName = (sessionsMap[sId] && sessionsMap[sId].name) || "General";
+            const bName = batch.name || f.batchName || "Unknown Batch";
+            const key = `${sName}__${bName}`;
+            if (!batchAgg[key]) {
+              batchAgg[key] = { session: sName, batch: bName, count: 0, total: 0 };
+            }
+            batchAgg[key].count += 1;
+            batchAgg[key].total += Number(f.amount) || 0;
+          });
+
+          const batchRows = Object.values(batchAgg);
+          document.getElementById("rep-batch-table").innerHTML = batchRows.length
+            ? batchRows.map((r) => `
+                <tr>
+                  <td data-label="Session">${escapeHtml(r.session)}</td>
+                  <td data-label="Batch Name"><strong>${escapeHtml(r.batch)}</strong></td>
+                  <td data-label="Paid Receipts">${r.count}</td>
+                  <td data-label="Collected (₹)"><strong>${formatINR(r.total)}</strong></td>
+                </tr>
+              `).join("")
+            : `<tr><td colspan="4" class="empty-cell text-muted">No fee collections recorded for ${escapeHtml(formatMonthLabel(targetMonth))}.</td></tr>`;
+
+          // Expense Categories
+          const categories = ["rent", "salary", "electricity", "other"];
+          document.getElementById("rep-expense-cat-table").innerHTML = categories.map((cat) => {
+            const matched = expenses.filter((e) => (e.category || "other").toLowerCase() === cat);
+            const sum = matched.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+            return `
+              <tr>
+                <td data-label="Category" style="text-transform: capitalize;"><strong>${escapeHtml(cat)}</strong></td>
+                <td data-label="Entries">${matched.length}</td>
+                <td data-label="Total Amount (₹)">${formatINR(sum)}</td>
+              </tr>
+            `;
+          }).join("");
+
+          // Fees Register
+          fees.sort((a, b) => (b.paidAt || 0) - (a.paidAt || 0));
+          document.getElementById("rep-fees-register").innerHTML = fees.length
+            ? fees.map((f) => {
+                const batch = batchesMap[f.batchId] || {};
+                const paidDate = f.paidAt ? new Date(f.paidAt).toLocaleDateString("en-IN") : "--";
+                return `
+                  <tr>
+                    <td data-label="Date">${escapeHtml(paidDate)}</td>
+                    <td data-label="Student ID" class="mono">${escapeHtml(f.studentId)}</td>
+                    <td data-label="Student Name">${escapeHtml(f.studentName)}</td>
+                    <td data-label="Batch">${escapeHtml(batch.name || "--")}</td>
+                    <td data-label="Mode"><span class="badge badge-primary">${escapeHtml((f.mode || "cash").toUpperCase())}</span></td>
+                    <td data-label="Amount (₹)"><strong>${formatINR(f.amount)}</strong></td>
+                  </tr>
+                `;
+              }).join("")
+            : `<tr><td colspan="6" class="empty-cell text-muted">No fee receipts for this month.</td></tr>`;
+
+          // Expenses Register
+          expenses.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+          document.getElementById("rep-expenses-register").innerHTML = expenses.length
+            ? expenses.map((e) => `
+                <tr>
+                  <td data-label="Date">${escapeHtml(e.date || "--")}</td>
+                  <td data-label="Category" style="text-transform: capitalize;">${escapeHtml(e.category || "other")}</td>
+                  <td data-label="Added By">${escapeHtml(e.addedBy || "--")}</td>
+                  <td data-label="Amount (₹)"><strong>${formatINR(e.amount)}</strong></td>
+                </tr>
+              `).join("")
+            : `<tr><td colspan="4" class="empty-cell text-muted">No expenses recorded for this month.</td></tr>`;
+
+          document.getElementById("report-loading").classList.add("hidden");
+          document.getElementById("report-body").classList.remove("hidden");
+        } catch (err) {
+          console.error(err);
+          document.getElementById("report-loading").className = "alert alert-danger";
+          document.getElementById("report-loading").textContent = "Failed to load report data from Firebase.";
+        }
+      }
+
+      loadReport();
+    </script>
+  </body>
+</html>

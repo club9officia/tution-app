@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR Attendance Check-In — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="login-page">
+    <main class="login-card">
+      <div class="login-brand">
+        <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Jain Commerce Hub Logo" />
+        <h1>Attendance Check-In</h1>
+        <p id="checkin-status-label" class="text-muted" style="margin: 0; font-size: 0.9rem;">Verifying center QR code...</p>
+      </div>
+
+      <div id="checkin-alert" class="alert hidden"></div>
+
+      <div id="checkin-invalid" class="hidden">
+        <div id="checkin-invalid-msg" class="alert alert-danger">
+          Invalid or outdated QR. Please scan the current QR at the gate.
+        </div>
+        <a href="index.html" class="btn btn-outline btn-block">Go to Portal Login</a>
+      </div>
+
+      <form id="checkin-form" class="hidden">
+        <div class="form-group">
+          <label for="checkin-std-id">Student ID</label>
+          <input id="checkin-std-id" type="text" placeholder="Enter your STD ID" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="checkin-password">Password</label>
+          <input id="checkin-password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+        </div>
+        <div class="form-sticky-actions">
+          <button type="submit" id="checkin-submit-btn" class="btn btn-success btn-block">
+            Confirm Check-In
+          </button>
+        </div>
+      </form>
+
+      <div id="checkin-success" class="hidden" style="text-align: center;">
+        <div class="alert alert-success" style="font-size: 1.05rem;">
+          <div style="font-size: 2rem; line-height: 1; margin-bottom: 6px;">✅</div>
+          <strong id="checkin-success-msg">✅ Attendance Marked</strong>
+          <div id="checkin-success-meta" style="margin-top: 8px; font-size: 0.88rem;"></div>
+        </div>
+        <a href="student.html" class="btn btn-primary btn-block" style="margin-top: 10px;">Open Student Portal</a>
+      </div>
+    </main>
+
+    <script type="module">
+      import {
+        dbGet,
+        dbSet,
+        getCenterQR,
+        validateCenterCheckin,
+        today,
+        nowTime12,
+        formatRecordTimeHM,
+        toast
+      } from "./js/app.js";
+
+      const params = new URLSearchParams(window.location.search);
+      const token = (params.get("token") || "").trim();
+
+      const statusLabel = document.getElementById("checkin-status-label");
+      const alertBox = document.getElementById("checkin-alert");
+      const invalidBox = document.getElementById("checkin-invalid");
+      const invalidMsg = document.getElementById("checkin-invalid-msg");
+      const form = document.getElementById("checkin-form");
+      const successBox = document.getElementById("checkin-success");
+
+      function showAlert(msg, type = "danger") {
+        alertBox.textContent = msg;
+        alertBox.className = `alert alert-${type}`;
+      }
+
+      function showInvalid(msg) {
+        statusLabel.textContent = "QR Check-In Unavailable";
+        invalidMsg.textContent = msg;
+        form.classList.add("hidden");
+        invalidBox.classList.remove("hidden");
+      }
+
+      async function verifyCenterQrToken() {
+        try {
+          const todayStr = today();
+          const centerQR = await getCenterQR();
+          const check = validateCenterCheckin({ token, centerQR, existingAttendance: null });
+
+          if (!check.ok) {
+            showInvalid(check.message);
+            return;
+          }
+
+          statusLabel.textContent = `Gate Attendance Check-In • ${todayStr}`;
+          form.classList.remove("hidden");
+        } catch (err) {
+          console.error(err);
+          showInvalid("Unable to verify center QR code. Please contact reception.");
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        alertBox.className = "alert hidden";
+
+        const stdId = document.getElementById("checkin-std-id").value.trim().toUpperCase();
+        const password = document.getElementById("checkin-password").value;
+        const btn = document.getElementById("checkin-submit-btn");
+
+        if (!/^[A-Z0-9_-]+$/.test(stdId)) {
+          showAlert("Enter a valid Student ID.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Checking In...";
+
+        try {
+          const centerQR = await getCenterQR();
+          const tokenCheck = validateCenterCheckin({ token, centerQR, existingAttendance: null });
+          if (!tokenCheck.ok) {
+            showInvalid(tokenCheck.message);
+            return;
+          }
+
+          const student = await dbGet(`students/${stdId}`);
+          if (!student || student.active === false) {
+            showAlert("Student account not found or inactive.");
+            return;
+          }
+          if (student.password !== password) {
+            showAlert("Incorrect password.");
+            return;
+          }
+          if (!student.batchId) {
+            showAlert("No batch assigned to your account. Please contact reception.");
+            return;
+          }
+
+          const batch = await dbGet(`batches/${student.batchId}`);
+          const batchName = batch && batch.name ? batch.name : student.batchId;
+          const todayStr = today();
+          const attPath = `attendance/${todayStr}_${student.batchId}/${stdId}`;
+          const existing = (await dbGet(attPath)) || (await dbGet(`attendance/${todayStr}/${stdId}`));
+
+          // Check if attendance already recorded today
+          if (existing && existing.status) {
+            const recordedTime = formatRecordTimeHM(existing) || nowTime12();
+            form.classList.add("hidden");
+            const successCard = successBox.querySelector(".alert");
+
+            if (existing.source === "manual") {
+              if (successCard) {
+                successCard.className = "alert alert-info";
+              }
+              document.getElementById("checkin-success-msg").textContent =
+                `Attendance already recorded by the receptionist at ${recordedTime}`;
+              document.getElementById("checkin-success-meta").textContent =
+                `Student: ${student.name} (${stdId}) • Batch: ${batchName} • Date: ${todayStr}`;
+              toast("Attendance already recorded.", "info");
+            } else {
+              if (successCard) {
+                successCard.className = "alert alert-success";
+              }
+              document.getElementById("checkin-success-msg").textContent =
+                `✅ Already checked in today at ${recordedTime}`;
+              document.getElementById("checkin-success-meta").textContent =
+                `Student: ${student.name} (${stdId}) • Batch: ${batchName} • Date: ${todayStr}`;
+              toast("Already checked in today.", "info");
+            }
+
+            successBox.classList.remove("hidden");
+            return; // Do NOT write to Firebase again
+          }
+
+          // No record exists: record attendance now
+          const time12 = nowTime12();
+          await dbSet(attPath, {
+            status: "present",
+            source: "qr",
+            timestamp: Date.now(),
+            markedAt: Date.now(),
+            checkinTime: time12,
+            checkinDate: todayStr,
+            date: todayStr
+          });
+
+          form.classList.add("hidden");
+          const successCard = successBox.querySelector(".alert");
+          if (successCard) {
+            successCard.className = "alert alert-success";
+          }
+          document.getElementById("checkin-success-msg").textContent =
+            `✅ Checked in successfully at ${time12}`;
+          document.getElementById("checkin-success-meta").textContent =
+            `Student: ${student.name} (${stdId}) • Batch: ${batchName} • Date: ${todayStr}`;
+          successBox.classList.remove("hidden");
+          toast("Attendance marked successfully!", "success");
+        } catch (err) {
+          console.error(err);
+          showAlert("Unable to mark attendance right now.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Confirm Check-In";
+        }
+      });
+
+      verifyCenterQrToken();
+    </script>
+  </body>
+</html>

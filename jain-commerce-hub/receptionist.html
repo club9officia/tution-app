@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receptionist Dashboard — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+          <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Logo" />
+          <div class="sidebar-brand-text">
+            <strong>Jain Commerce Hub</strong>
+            <span>Receptionist</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-panel="students">Students</button>
+          <button type="button" class="nav-item" data-panel="fees">Fees &amp; Invoices</button>
+          <button type="button" class="nav-item" data-panel="defaulters">⚠️ Defaulters</button>
+          <button type="button" class="nav-item" data-panel="attendance">Attendance &amp; QR</button>
+          <button type="button" class="nav-item" data-panel="leaves">Leave Approvals</button>
+          <button type="button" class="nav-item" data-panel="timing">Today's Timing</button>
+          <button type="button" class="nav-item" data-panel="expenses">Expenses</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button type="button" id="logout-btn" class="btn btn-gold btn-block btn-sm">Logout</button>
+        </div>
+      </aside>
+
+      <div class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Open menu">☰</button>
+            <h1 id="topbar-title" class="topbar-title">Students</h1>
+          </div>
+          <div class="topbar-user">
+            <span id="rec-user-badge" class="badge badge-primary">Receptionist</span>
+            <button type="button" id="topbar-logout-btn" class="btn btn-outline btn-sm btn-inline desktop-only">Logout</button>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <!-- 1. STUDENTS -->
+          <section id="panel-students" class="panel active">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Enrolled Students</h2>
+                <input id="student-search" type="search" placeholder="Search by name, STD ID, or phone..." style="max-width: 280px;" />
+              </div>
+              <div id="students-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading students...</p>
+              </div>
+            </div>
+            <button type="button" id="fab-add-student" class="fab-btn" aria-label="Add Student">+</button>
+          </section>
+
+          <!-- 1.5 DEFAULTERS -->
+          <section id="panel-defaulters" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Fee Defaulters (Previous Month Unpaid)</h2>
+                <span class="badge badge-danger" id="defaulters-count-badge">0 Defaulters</span>
+              </div>
+              <p class="text-muted" style="margin-bottom: 14px;">
+                Students whose previous month's fees remain unpaid after the 10th of the current month.
+              </p>
+              <div id="defaulters-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">No fee defaulters.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. FEES & INVOICES (Month Picker + Debounced Search + Single Student Fee Card) -->
+          <section id="panel-fees" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Fee Collection</h2>
+                <div class="month-picker-wrap">
+                  <button type="button" id="fee-month-picker-btn" class="month-picker-btn" aria-expanded="false">
+                    <span id="fee-month-picker-label">Select Month</span>
+                    <span>▾</span>
+                  </button>
+                  <div id="fee-month-dropdown" class="month-picker-dropdown" role="menu"></div>
+                </div>
+              </div>
+
+              <div class="search-suggest-wrap">
+                <label for="fee-search" style="display:block; margin-bottom:6px;">Search Student</label>
+                <input
+                  id="fee-search"
+                  type="search"
+                  placeholder="Enter Student ID or Name"
+                  autocomplete="off"
+                />
+                <div id="fee-suggestions" class="suggest-dropdown hidden"></div>
+              </div>
+
+              <div id="fee-selected-card" class="fee-student-card hidden"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Paid Receipts — <span id="fee-paid-month-label"></span></h2>
+                <span class="badge badge-success" id="fee-month-total">₹0</span>
+              </div>
+              <div id="paid-fees-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">No paid receipts recorded for this month.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. ATTENDANCE & QR CHECK-IN (P-Button Card List) -->
+          <section id="panel-attendance" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Daily Attendance</h2>
+                  <span id="att-qr-last-printed" class="text-muted" style="font-size: 0.85rem;">Center QR has not been printed yet.</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: auto;">
+                  <span class="badge badge-gold" id="att-batch-timing-badge">Select a batch</span>
+                  <button type="button" id="print-center-qr-btn" class="btn btn-primary btn-sm btn-inline">🖨 Print Center QR</button>
+                </div>
+              </div>
+              <div class="form-grid" style="margin-bottom: 16px;">
+                <div class="form-group">
+                  <label for="att-session">Session</label>
+                  <select id="att-session"></select>
+                </div>
+                <div class="form-group">
+                  <label for="att-batch">Batch</label>
+                  <select id="att-batch"></select>
+                </div>
+                <div class="form-group">
+                  <label for="att-date">Date</label>
+                  <input id="att-date" type="date" />
+                </div>
+              </div>
+
+              <div id="att-auto-status" class="alert alert-info hidden"></div>
+
+              <div id="attendance-p-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Select a session and batch.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. LEAVE APPROVALS -->
+          <section id="panel-leaves" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Student Leave Applications</h2>
+                <span class="badge badge-gold" id="pending-leaves-badge">0 Pending</span>
+              </div>
+              <div id="rec-leaves-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading leaves...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. TODAY'S TIMING OVERRIDE -->
+          <section id="panel-timing" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Today's Timing Override</h2>
+                <span class="badge badge-gold" id="override-today-badge"></span>
+              </div>
+              <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 14px;">
+                Overrides apply to <strong>today only</strong> and automatically notify all active students in the selected batch. Multiple updates per day are allowed.
+              </p>
+              <form id="timing-override-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="ov-session">Session</label>
+                    <select id="ov-session" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ov-batch">Batch</label>
+                    <select id="ov-batch" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="ov-start">New Start Time</label>
+                    <input id="ov-start" type="time" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="ov-end">New End Time</label>
+                    <input id="ov-end" type="time" required />
+                  </div>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">
+                    Update Today's Timing &amp; Notify Students
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Today's Timing Overrides</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Batch</th>
+                      <th>New Timing</th>
+                      <th>Updated By</th>
+                      <th>Time Logged</th>
+                    </tr>
+                  </thead>
+                  <tbody id="today-overrides-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. EXPENSES (Strictly Amount, Category, Date — NO note) -->
+          <section id="panel-expenses" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Record Expense</h2>
+              </div>
+              <form id="rec-expense-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="rec-exp-amount">Amount (₹)</label>
+                    <input id="rec-exp-amount" type="number" min="1" placeholder="Enter amount" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="rec-exp-category">Category</label>
+                    <select id="rec-exp-category" required>
+                      <option value="rent">Rent</option>
+                      <option value="salary">Salary</option>
+                      <option value="electricity">Electricity</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="rec-exp-date">Date</label>
+                    <input id="rec-exp-date" type="date" required />
+                  </div>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Add Expense</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Recent Expenses</h2>
+              </div>
+              <div id="rec-expenses-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading expenses...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7. MORE MENU PANEL (Mobile Quick Access) -->
+          <section id="panel-more" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">More Options</h2>
+              </div>
+              <div class="more-menu-grid">
+                <button type="button" class="more-menu-btn rec-more-nav" data-panel="expenses">
+                  <span>💸 Expenses</span><span>›</span>
+                </button>
+                <button type="button" class="more-menu-btn" id="rec-more-print-qr-btn">
+                  <span>🖨 Print Center QR</span><span>›</span>
+                </button>
+                <button type="button" class="more-menu-btn rec-more-nav" data-panel="timing">
+                  <span>⏰ Today's Timing Override</span><span>›</span>
+                </button>
+                <button type="button" class="more-menu-btn danger" id="rec-more-logout-btn">
+                  <span>🚪 Logout</span><span>›</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Mobile Bottom Tab Bar (5 tabs) -->
+        <nav class="mobile-bottom-nav" aria-label="Receptionist Tabs">
+          <button type="button" class="mobile-tab-btn active" data-panel="students">
+            <span class="tab-ico">🎓</span><span>Students</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="fees">
+            <span class="tab-ico">💰</span><span>Fees</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="defaulters">
+            <span class="tab-ico">⚠️</span><span>Defaulters</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="attendance">
+            <span class="tab-ico">✅</span><span>Attend</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="more">
+            <span class="tab-ico">⋯</span><span>More</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Student Enroll / Edit Modal -->
+    <div id="student-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal modal-wide">
+        <div class="modal-head">
+          <h3 id="student-form-title">Enroll New Student</h3>
+          <button type="button" id="close-student-modal-btn" class="btn btn-outline btn-sm btn-inline popup-close-btn" aria-label="Close modal" style="min-width:44px; min-height:44px;">✕</button>
+        </div>
+        <div id="student-cred-banner" class="alert alert-success hidden"></div>
+        <form id="student-form">
+          <input id="student-edit-id" type="hidden" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="stu-name">Student Name</label>
+              <input id="stu-name" type="text" placeholder="Full name" required />
+            </div>
+            <div class="form-group">
+              <label for="stu-parental">Parental Mobile (Primary) <span class="req-star">*</span></label>
+              <input id="stu-parental" type="tel" placeholder="10-digit primary number" required />
+            </div>
+            <div class="form-group">
+              <label for="stu-father">Father's Mobile</label>
+              <input id="stu-father" type="tel" placeholder="Optional 10-digit number" />
+            </div>
+            <div class="form-group">
+              <label for="stu-mother">Mother's Mobile</label>
+              <input id="stu-mother" type="tel" placeholder="Optional 10-digit number" />
+            </div>
+            <div class="form-group">
+              <label for="stu-personal">Student's Personal Mobile</label>
+              <input id="stu-personal" type="tel" placeholder="Optional 10-digit number" />
+            </div>
+            <div class="form-group">
+              <label for="stu-session">Session</label>
+              <select id="stu-session" required></select>
+            </div>
+            <div class="form-group">
+              <label for="stu-batch">Batch</label>
+              <select id="stu-batch" required></select>
+            </div>
+            <div class="form-group">
+              <label for="stu-joining">Joining Date</label>
+              <input id="stu-joining" type="date" required />
+            </div>
+            <div class="form-group">
+              <label for="stu-mode">Default Mode</label>
+              <select id="stu-mode">
+                <option value="offline">Offline</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
+            <div class="form-group" id="stu-password-wrap">
+              <label for="stu-password">Password (blank = 123456)</label>
+              <input id="stu-password" type="text" placeholder="Default: 123456" />
+            </div>
+          </div>
+          <div class="form-sticky-actions" style="margin-top: 16px;">
+            <button type="submit" id="student-submit-btn" class="btn btn-primary btn-block">
+              Enroll Student
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="js/receptionist.js"></script>
+  </body>
+</html>

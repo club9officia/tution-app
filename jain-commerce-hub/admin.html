@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+          <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Logo" />
+          <div class="sidebar-brand-text">
+            <strong>Jain Commerce Hub</strong>
+            <span>Admin Panel</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-panel="overview">Overview</button>
+          <button type="button" class="nav-item" data-panel="sessions-batches">Sessions &amp; Batches</button>
+          <button type="button" class="nav-item" data-panel="defaulters">⚠️ Fee Defaulters</button>
+          <button type="button" class="nav-item" data-panel="staff">Staff Management</button>
+          <button type="button" class="nav-item" data-panel="expenses">Expenses</button>
+          <button type="button" class="nav-item" data-panel="reports">Revenue Report</button>
+          <button type="button" class="nav-item" data-panel="timing-logs">Timing Logs</button>
+          <button type="button" class="nav-item" data-panel="transfer-admin">Transfer Admin</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button type="button" id="logout-btn" class="btn btn-gold btn-block btn-sm">Logout</button>
+        </div>
+      </aside>
+
+      <div class="main-area">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="Open menu">☰</button>
+            <h1 id="topbar-title" class="topbar-title">Overview</h1>
+          </div>
+          <div class="topbar-user">
+            <button type="button" id="admin-print-center-qr-btn" class="btn btn-gold btn-sm btn-inline desktop-only">🖨 Print Center QR</button>
+            <span id="admin-email-badge" class="badge badge-primary desktop-only">Admin</span>
+            <button type="button" id="topbar-logout-btn" class="btn btn-outline btn-sm btn-inline desktop-only">Logout</button>
+            <div class="overflow-menu-wrap">
+              <button type="button" id="admin-topbar-more-btn" class="btn btn-outline btn-sm btn-inline" aria-label="More options" aria-expanded="false">⋮</button>
+              <div id="admin-topbar-more-menu" class="overflow-menu-dropdown" role="menu">
+                <button type="button" class="overflow-menu-item admin-more-nav" data-panel="timing-logs" role="menuitem">🕒 Timing Logs</button>
+                <button type="button" class="overflow-menu-item admin-more-nav" data-panel="transfer-admin" role="menuitem">🔁 Transfer Admin</button>
+                <button type="button" id="admin-topbar-print-qr-btn" class="overflow-menu-item" role="menuitem">🖨 Print Center QR</button>
+                <button type="button" id="admin-topbar-regen-qr-btn" class="overflow-menu-item danger" role="menuitem">🔄 Regenerate Center QR</button>
+                <button type="button" id="admin-topbar-logout-btn" class="overflow-menu-item danger" role="menuitem">🚪 Logout</button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <!-- 1. OVERVIEW -->
+          <section id="panel-overview" class="panel active">
+            <div class="stats-grid" id="admin-stats-grid"></div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Recent Students</h2>
+                <span class="badge badge-gold" id="total-students-badge">0 Active</span>
+              </div>
+              <div id="recent-students-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading students...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 1.5 DEFAULTERS -->
+          <section id="panel-defaulters" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Fee Defaulters (Previous Month Unpaid)</h2>
+                <span class="badge badge-danger" id="admin-defaulters-count-badge">0 Defaulters</span>
+              </div>
+              <p class="text-muted" style="margin-bottom: 14px;">
+                Students whose previous month's fees remain unpaid after the 10th of the current month.
+              </p>
+              <div id="admin-defaulters-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">No fee defaulters.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. SESSIONS & BATCHES -->
+          <section id="panel-sessions-batches" class="panel">
+            <div class="form-grid">
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Create Academic Session</h2>
+                </div>
+                <form id="create-session-form">
+                  <div class="form-group">
+                    <label for="session-name">Session Name</label>
+                    <input id="session-name" type="text" placeholder="e.g. 2026-27" required />
+                  </div>
+                  <div class="form-sticky-actions">
+                    <button type="submit" class="btn btn-primary btn-block">Create Session</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title" id="batch-form-title">Create Batch</h2>
+                  <button type="button" id="cancel-batch-edit" class="btn btn-outline btn-sm btn-inline hidden">Cancel Edit</button>
+                </div>
+                <form id="batch-form">
+                  <input id="batch-edit-id" type="hidden" />
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="batch-session">Session</label>
+                      <select id="batch-session" required></select>
+                    </div>
+                    <div class="form-group">
+                      <label for="batch-name">Batch Name</label>
+                      <input id="batch-name" type="text" placeholder="Enter batch name" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="batch-start">Start Time</label>
+                      <input id="batch-start" type="time" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="batch-end">End Time</label>
+                      <input id="batch-end" type="time" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="batch-monthly">Monthly Fees (₹)</label>
+                      <input id="batch-monthly" type="number" min="0" placeholder="Enter monthly fee" required />
+                    </div>
+                    <div class="form-group">
+                      <label for="batch-complete">Complete Course Fees (₹)</label>
+                      <input id="batch-complete" type="number" min="0" placeholder="Enter complete course fee" required />
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label for="batch-teacher">Assigned Batch Teacher (for Student Doubt WhatsApp)</label>
+                    <select id="batch-teacher"></select>
+                  </div>
+                  <div class="form-sticky-actions">
+                    <button type="submit" id="batch-submit-btn" class="btn btn-primary btn-block">Create Batch</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Sessions &amp; Batches List</h2>
+                  <span id="admin-qr-last-printed" class="text-muted" style="font-size: 0.78rem;">Center QR: Checking...</span>
+                </div>
+                <div class="overflow-menu-wrap">
+                  <button type="button" id="admin-qr-overflow-btn" class="btn btn-outline btn-sm btn-inline" aria-label="Center QR options" aria-expanded="false">⋮</button>
+                  <div id="admin-qr-overflow-menu" class="overflow-menu-dropdown" role="menu">
+                    <button type="button" id="admin-menu-print-qr-btn" class="overflow-menu-item" role="menuitem">🖨 Print Center QR</button>
+                    <button type="button" id="open-regen-center-qr-btn" class="overflow-menu-item danger" role="menuitem">🔄 Regenerate Center QR</button>
+                  </div>
+                </div>
+              </div>
+              <div id="sessions-batches-list"></div>
+            </div>
+          </section>
+
+          <!-- 3. STAFF MANAGEMENT -->
+          <section id="panel-staff" class="panel">
+            <div id="staff-cred-banner" class="alert alert-success hidden"></div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title" id="staff-form-title">Create Staff Account</h2>
+                <button type="button" id="cancel-staff-edit" class="btn btn-outline btn-sm btn-inline hidden">Cancel Edit</button>
+              </div>
+              <form id="staff-form">
+                <input id="staff-edit-id" type="hidden" />
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="staff-name">Full Name</label>
+                    <input id="staff-name" type="text" placeholder="Enter full name" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="staff-occupation">Occupation / Role</label>
+                    <select id="staff-occupation" required>
+                      <option value="teacher">Teacher (TCH)</option>
+                      <option value="receptionist">Receptionist (REC)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="staff-phone">WhatsApp / Phone Number</label>
+                    <input id="staff-phone" type="tel" placeholder="10-digit mobile number" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="staff-salary">Monthly Salary (₹)</label>
+                    <input id="staff-salary" type="number" min="0" placeholder="Enter monthly salary" required />
+                  </div>
+                  <div class="form-group" id="staff-password-wrap">
+                    <label for="staff-password">Password</label>
+                    <input id="staff-password" type="text" placeholder="Enter password" required />
+                  </div>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" id="staff-submit-btn" class="btn btn-primary btn-block">
+                    Create Staff Account
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">All Staff Accounts</h2>
+              </div>
+              <div id="staff-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading staff...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. EXPENSES (Strictly Amount, Category, Date — NO note) -->
+          <section id="panel-expenses" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Record Expense</h2>
+              </div>
+              <form id="admin-expense-form">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="exp-amount">Amount (₹)</label>
+                    <input id="exp-amount" type="number" min="1" placeholder="Enter amount" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="exp-category">Category</label>
+                    <select id="exp-category" required>
+                      <option value="rent">Rent</option>
+                      <option value="salary">Salary</option>
+                      <option value="electricity">Electricity</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="exp-date">Date</label>
+                    <input id="exp-date" type="date" required />
+                  </div>
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-primary btn-block">Add Expense</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">All Expenses</h2>
+                <span class="badge badge-danger" id="admin-expenses-total">₹0</span>
+              </div>
+              <div id="admin-expenses-list" class="list-box-stack">
+                <p class="text-muted" style="margin:0;">Loading expenses...</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. REVENUE REPORT -->
+          <section id="panel-reports" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Monthly Revenue &amp; P&amp;L Report</h2>
+              </div>
+              <div class="form-grid" style="align-items: end;">
+                <div class="form-group">
+                  <label for="report-month-input">Select Month (YYYY-MM)</label>
+                  <input id="report-month-input" type="month" required />
+                </div>
+                <div class="form-group">
+                  <button type="button" id="open-report-btn" class="btn btn-primary btn-block">
+                    Open Printable Report (PDF)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="stats-grid" id="report-preview-stats"></div>
+          </section>
+
+          <!-- 6. TIMING LOGS -->
+          <section id="panel-timing-logs" class="panel">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Batch Timing Override Logs</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Batch</th>
+                      <th>New Timing</th>
+                      <th>Overridden By</th>
+                      <th>Logged At</th>
+                    </tr>
+                  </thead>
+                  <tbody id="timing-logs-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7. TRANSFER ADMIN -->
+          <section id="panel-transfer-admin" class="panel">
+            <div class="card" style="max-width: 620px;">
+              <div class="card-header">
+                <h2 class="card-title">Transfer Admin Ownership</h2>
+                <span class="badge badge-danger">Irreversible</span>
+              </div>
+              <div class="alert alert-gold">
+                Enter the email address of the new Admin. When ownership transfers, the new email receives active Admin access and your current Admin account becomes expired and locked out.
+              </div>
+              <form id="transfer-admin-form">
+                <div class="form-group">
+                  <label for="new-admin-email">New Admin Email Address</label>
+                  <input id="new-admin-email" type="email" placeholder="Enter new admin email" required />
+                </div>
+                <div class="form-sticky-actions">
+                  <button type="submit" class="btn btn-danger btn-block">Transfer Admin Ownership</button>
+                </div>
+              </form>
+              <div id="pending-invite-box" class="alert alert-info hidden" style="margin-top: 16px;"></div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Mobile Bottom Tab Bar (5 tabs) -->
+        <nav class="mobile-bottom-nav" aria-label="Admin Quick Tabs">
+          <button type="button" class="mobile-tab-btn active" data-panel="overview">
+            <span class="tab-ico">📊</span><span>Dash</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="sessions-batches">
+            <span class="tab-ico">📚</span><span>Sessions</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="staff">
+            <span class="tab-ico">👥</span><span>Staff</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="expenses">
+            <span class="tab-ico">💸</span><span>Expenses</span>
+          </button>
+          <button type="button" class="mobile-tab-btn" data-panel="reports">
+            <span class="tab-ico">📈</span><span>Report</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Reset Staff Password Modal -->
+    <div id="reset-pwd-modal" class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Reset Staff Password</h3>
+          <button type="button" class="btn btn-outline btn-sm btn-inline" id="close-reset-modal">Close</button>
+        </div>
+        <form id="reset-staff-pwd-form">
+          <input id="reset-staff-id" type="hidden" />
+          <p class="text-muted">Reset password for <strong id="reset-staff-label"></strong></p>
+          <div class="form-group">
+            <label for="reset-staff-new-pwd">New Password</label>
+            <input id="reset-staff-new-pwd" type="text" minlength="4" placeholder="Enter new password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Update Password</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirm Regenerate Center QR Modal -->
+    <div id="confirm-regen-center-qr-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Regenerate Center QR?</h3>
+          <button type="button" id="cancel-regen-center-qr-btn" class="btn btn-outline btn-sm btn-inline">Cancel</button>
+        </div>
+        <div class="alert alert-gold" style="margin-bottom: 16px;">
+          This will invalidate the existing printed QR. All students must scan the new QR tomorrow. Continue?
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="cancel-regen-center-qr-btn-2" class="btn btn-outline" style="flex: 1;">Cancel</button>
+          <button type="button" id="confirm-regen-center-qr-btn" class="btn btn-danger" style="flex: 1;">Yes, Regenerate QR</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>

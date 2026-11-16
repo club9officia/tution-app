@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jain Commerce Hub — Portal Login</title>
+    <meta name="description" content="Tuition management portal for Jain Commerce Hub — Admin, Receptionist, Teacher, and Student login." />
+    <meta property="og:title" content="Jain Commerce Hub" />
+    <meta property="og:description" content="Tuition management portal for Jain Commerce Hub." />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="login-page">
+    <main class="login-card">
+      <div class="login-brand">
+        <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Jain Commerce Hub Logo" />
+        <h1>Jain Commerce Hub</h1>
+        <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Sign in to your dashboard</p>
+      </div>
+
+      <div class="tab-switch" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="staff-student">Staff / Student</button>
+        <button type="button" class="tab-btn" data-tab="admin">Admin</button>
+      </div>
+
+      <div id="login-alert" class="alert hidden"></div>
+
+      <!-- Staff / Student ID + Plain Password Login -->
+      <form id="credentials-form">
+        <div class="form-group">
+          <label for="login-id">User ID</label>
+          <input id="login-id" type="text" placeholder="Enter your User ID" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+        </div>
+        <div class="form-sticky-actions">
+          <button type="submit" id="cred-submit-btn" class="btn btn-primary btn-block">
+            Sign In with ID
+          </button>
+        </div>
+        <p class="text-muted" style="font-size: 0.82rem; margin: 12px 0 0; text-align: center;">
+          Sign in with the User ID and password provided by the center.
+        </p>
+      </form>
+
+      <!-- Admin Email + Password Login -->
+      <form id="admin-form" class="hidden">
+        <div class="form-group">
+          <label for="admin-email">Admin Email</label>
+          <input id="admin-email" type="email" placeholder="Enter admin email" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input id="admin-password" type="password" minlength="6" placeholder="Enter password (min 6 chars)" autocomplete="current-password" required />
+        </div>
+        <div class="form-sticky-actions">
+          <button type="submit" id="admin-submit-btn" class="btn btn-primary btn-block">
+            Sign In as Admin
+          </button>
+        </div>
+        <p class="text-muted" style="font-size: 0.82rem; margin: 12px 0 0; text-align: center;">
+          On first-time setup, signing in creates and activates the primary Admin account.
+        </p>
+      </form>
+    </main>
+
+    <script type="module">
+      import {
+        auth,
+        rtdb,
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+        signOut,
+        ref,
+        get,
+        set,
+        update,
+        remove
+      } from "./js/firebase-config.js";
+      import {
+        setSession,
+        getSession,
+        sanitizeEmailKey,
+        dbGet,
+        toast
+      } from "./js/app.js";
+
+      // Redirect immediately if already logged in
+      const existing = getSession();
+      if (existing && existing.role) {
+        const routes = {
+          admin: "admin.html",
+          receptionist: "receptionist.html",
+          teacher: "teacher.html",
+          student: "student.html"
+        };
+        if (routes[existing.role]) {
+          window.location.href = routes[existing.role];
+        }
+      }
+
+      const alertBox = document.getElementById("login-alert");
+      const credForm = document.getElementById("credentials-form");
+      const adminForm = document.getElementById("admin-form");
+      const tabBtns = document.querySelectorAll(".tab-btn");
+
+      function showAlert(msg, type = "danger") {
+        alertBox.textContent = msg;
+        alertBox.className = `alert alert-${type}`;
+      }
+
+      function hideAlert() {
+        alertBox.className = "alert hidden";
+      }
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          hideAlert();
+          tabBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const tab = btn.dataset.tab;
+          if (tab === "admin") {
+            credForm.classList.add("hidden");
+            adminForm.classList.remove("hidden");
+          } else {
+            adminForm.classList.add("hidden");
+            credForm.classList.remove("hidden");
+          }
+        });
+      });
+
+      // Staff / Student Plain Password Login
+      credForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert();
+        const rawInput = document.getElementById("login-id").value.trim();
+        const rawId = rawInput.toUpperCase();
+        const password = document.getElementById("login-password").value;
+        const btn = document.getElementById("cred-submit-btn");
+
+        if (!rawId || !password) {
+          showAlert("Please enter both your ID and password.");
+          return;
+        }
+
+        if (rawInput.includes("@")) {
+          document.querySelector('.tab-btn[data-tab="admin"]').click();
+          document.getElementById("admin-email").value = rawInput.toLowerCase();
+          document.getElementById("admin-password").value = password;
+          showAlert("Email detected — switched to the Admin tab. Click Sign In as Admin.", "info");
+          return;
+        }
+
+        if (!/^[A-Z0-9_-]+$/.test(rawId)) {
+          showAlert("Invalid User ID format. Enter your assigned Staff or Student ID.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Verifying...";
+
+        try {
+          if (rawId.startsWith("STD")) {
+            const student = await dbGet(`students/${rawId}`);
+            if (!student || student.active === false) {
+              showAlert("Student account not found or inactive.");
+              return;
+            }
+            if (student.password !== password) {
+              showAlert("Incorrect password. Please try again.");
+              return;
+            }
+            setSession({
+              role: "student",
+              id: rawId,
+              name: student.name,
+              batchId: student.batchId || "",
+              sessionId: student.sessionId || ""
+            });
+            toast(`Welcome, ${student.name}!`, "success");
+            window.location.href = "student.html";
+            return;
+          }
+
+          const staff = await dbGet(`staff/${rawId}`);
+          if (!staff) {
+            showAlert("ID not found. Check your Staff or Student ID.");
+            return;
+          }
+          if (staff.password !== password) {
+            showAlert("Incorrect password. Please try again.");
+            return;
+          }
+
+          const role = staff.occupation === "teacher" ? "teacher" : "receptionist";
+          setSession({
+            role,
+            id: rawId,
+            name: staff.name,
+            phone: staff.phone || ""
+          });
+          toast(`Welcome, ${staff.name}!`, "success");
+          window.location.href = role === "teacher" ? "teacher.html" : "receptionist.html";
+        } catch (err) {
+          console.error(err);
+          showAlert("Unable to sign in. Check your Firebase config and database rules.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Sign In with ID";
+        }
+      });
+
+      // Admin Email + Password Login
+      adminForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert();
+        const email = document.getElementById("admin-email").value.trim().toLowerCase();
+        const password = document.getElementById("admin-password").value;
+        const btn = document.getElementById("admin-submit-btn");
+
+        if (!email || !password) {
+          showAlert("Please enter both Admin email and password.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Signing in...";
+
+        try {
+          const emailKey = sanitizeEmailKey(email);
+          let cred;
+
+          try {
+            cred = await signInWithEmailAndPassword(auth, email, password);
+          } catch (signInErr) {
+            const errCode = signInErr && signInErr.code ? signInErr.code : "";
+            if (errCode === "auth/operation-not-allowed") {
+              showAlert("Email/Password sign-in is not enabled in Firebase Authentication → Sign-in method.");
+              return;
+            }
+            if (errCode !== "auth/user-not-found" && errCode !== "auth/invalid-credential") {
+              throw signInErr;
+            }
+
+            const [adminsSnap, inviteSnap] = await Promise.all([
+              get(ref(rtdb, "admins")),
+              get(ref(rtdb, `adminInvites/${emailKey}`))
+            ]);
+            const adminsData = adminsSnap.exists() ? adminsSnap.val() : null;
+            const isFirstRun = !adminsData || Object.keys(adminsData).length === 0;
+            const hasInvite = inviteSnap.exists();
+
+            if (!isFirstRun && !hasInvite) {
+              showAlert("Invalid email or password, or this account is not authorized as Admin.");
+              return;
+            }
+
+            try {
+              cred = await createUserWithEmailAndPassword(auth, email, password);
+            } catch (createErr) {
+              if (createErr && createErr.code === "auth/email-already-in-use") {
+                showAlert("Incorrect password for this Admin email.");
+                return;
+              }
+              throw createErr;
+            }
+          }
+
+          const user = cred.user;
+
+          await set(ref(rtdb, `emailUsers/${user.uid}`), {
+            email,
+            name: user.displayName || "Admin",
+            lastSeen: Date.now()
+          });
+
+          const adminsSnap = await get(ref(rtdb, "admins"));
+          const adminsData = adminsSnap.exists() ? adminsSnap.val() : null;
+
+          if (!adminsData || Object.keys(adminsData).length === 0) {
+            await set(ref(rtdb, `admins/${user.uid}`), {
+              email,
+              name: "Admin",
+              active: true,
+              expired: false,
+              createdAt: Date.now()
+            });
+          } else {
+            const inviteSnap = await get(ref(rtdb, `adminInvites/${emailKey}`));
+            if (inviteSnap.exists()) {
+              const invite = inviteSnap.val();
+              await set(ref(rtdb, `admins/${user.uid}`), {
+                email,
+                name: "Admin",
+                active: true,
+                expired: false,
+                createdAt: Date.now()
+              });
+              if (invite.transferredBy && invite.transferredBy !== user.uid) {
+                await update(ref(rtdb, `admins/${invite.transferredBy}`), {
+                  active: false,
+                  expired: true
+                });
+              }
+              await remove(ref(rtdb, `adminInvites/${emailKey}`));
+            } else {
+              const record = adminsData[user.uid];
+              if (!record) {
+                await signOut(auth);
+                showAlert("Access denied. This email is not authorized as Admin.");
+                return;
+              }
+              if (record.expired === true || record.active !== true) {
+                await signOut(auth);
+                showAlert("This Admin account has expired after ownership transfer.");
+                return;
+              }
+            }
+          }
+
+          setSession({
+            role: "admin",
+            id: user.uid,
+            email,
+            name: "Admin"
+          });
+          toast("Signed in as Admin!", "success");
+          window.location.href = "admin.html";
+        } catch (err) {
+          const code = err && err.code ? err.code : "";
+          if (code === "auth/invalid-email") {
+            showAlert("Please enter a valid email address.");
+          } else if (code === "auth/weak-password") {
+            showAlert("Password must be at least 6 characters.");
+          } else if (code === "auth/operation-not-allowed") {
+            showAlert("Email/Password sign-in is not enabled in Firebase Authentication → Sign-in method.");
+          } else {
+            showAlert(err && err.message ? err.message : "Admin sign-in failed.");
+          }
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Sign In as Admin";
+        }
+      });
+    </script>
+  </body>
+</html>

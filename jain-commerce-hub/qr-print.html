@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Print Center QR — Jain Commerce Hub</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="qr-print-page">
+    <div class="qr-print-actions no-print">
+      <a id="qr-back-link" href="receptionist.html" class="btn btn-outline" style="flex: 1;">← Back to Dashboard</a>
+      <button type="button" id="print-qr-btn" class="btn btn-primary" style="flex: 2;" disabled>
+        🖨 Print Center QR
+      </button>
+    </div>
+
+    <main id="qr-print-sheet" class="qr-print-sheet">
+      <div style="display:flex; justify-content:center; margin-bottom:10px;">
+        <img src="/assets/aistudio/image-removebg-preview_60776aef.png" alt="Jain Commerce Hub Logo" style="width:76px; height:76px; object-fit:contain;" />
+      </div>
+      <h1 style="margin:0 0 6px; font-size:2rem; color:var(--primary);">Jain Commerce Hub</h1>
+      <p style="margin:0 0 8px; font-size:1.15rem; font-weight:700; color:var(--text);">Daily Attendance Check-In</p>
+
+      <div id="qr-print-error" class="alert alert-danger hidden" style="margin-top:16px;"></div>
+
+      <div id="qr-print-code-wrap" class="qr-print-code hidden">
+        <img id="qr-print-img" alt="Center Attendance Check-In QR Code" />
+      </div>
+
+      <ul class="qr-print-instructions">
+        <li>1. Scan this QR when you arrive</li>
+        <li>2. Enter your Student ID and password</li>
+        <li>3. Click Confirm to mark attendance for today</li>
+      </ul>
+    </main>
+
+    <script type="module">
+      import {
+        getSession,
+        getCenterQR,
+        markCenterQRPrinted,
+        buildCenterCheckinUrl,
+        generateQR,
+        toast
+      } from "./js/app.js";
+
+      const session = getSession();
+      const backLink = document.getElementById("qr-back-link");
+      if (session && session.role === "admin") {
+        backLink.href = "admin.html";
+        backLink.textContent = "← Back to Admin";
+      } else {
+        backLink.href = "receptionist.html";
+        backLink.textContent = "← Back to Receptionist";
+      }
+
+      const errorEl = document.getElementById("qr-print-error");
+      const codeWrap = document.getElementById("qr-print-code-wrap");
+      const imgEl = document.getElementById("qr-print-img");
+      const printBtn = document.getElementById("print-qr-btn");
+
+      function showErr(msg) {
+        errorEl.textContent = msg;
+        errorEl.classList.remove("hidden");
+      }
+
+      async function initPrintPage() {
+        try {
+          const centerQR = await getCenterQR();
+          if (!centerQR || !centerQR.token) {
+            showErr("QR not initialized. Please ask the Admin to sign in or generate the center QR.");
+            return;
+          }
+
+          const checkinUrl = buildCenterCheckinUrl(centerQR.token);
+          imgEl.src = generateQR(checkinUrl);
+          codeWrap.classList.remove("hidden");
+          printBtn.disabled = false;
+        } catch (err) {
+          console.error(err);
+          showErr("Failed to load center QR code.");
+        }
+      }
+
+      printBtn.addEventListener("click", async () => {
+        try {
+          await markCenterQRPrinted();
+        } catch (err) {
+          console.error(err);
+          toast("Could not update print timestamp.", "error");
+        }
+        window.print();
+      });
+
+      initPrintPage();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "config": {
+      "centerQR": {
+        ".read": true,
+        ".write": true
+      },
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "admins": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "adminInvites": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "emailUsers": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "googleUsers": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "sessions": {
+      ".read": true,
+      ".write": true
+    },
+    "batches": {
+      ".read": true,
+      ".write": true
+    },
+    "students": {
+      ".read": true,
+      ".write": true
+    },
+    "staff": {
+      ".read": true,
+      ".write": true
+    },
+    "fees": {
+      ".read": true,
+      ".write": true
+    },
+    "expenses": {
+      ".read": true,
+      ".write": true
+    },
+    "attendance": {
+      ".read": true,
+      ".write": true
+    },
+    "timingOverrides": {
+      ".read": true,
+      ".write": true
+    },
+    "notifications": {
+      ".read": true,
+      ".write": true
+    },
+    "tests": {
+      ".read": true,
+      ".write": true
+    },
+    "testResults": {
+      ".read": true,
+      ".write": true
+    },
+    "leaves": {
+      ".read": true,
+      ".write": true
+    },
+    "weeklyContent": {
+      ".read": true,
+      ".write": true
+    },
+    "dateSheets": {
+      ".read": true,
+      ".write": true
+    },
+    "ptms": {
+      ".read": true,
+      ".write": true
+    },
+    "notices": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
